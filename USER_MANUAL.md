@@ -2,29 +2,23 @@
 
 ## How to Run
 
-### Step 1: Compile the Solver
-
-```bash
-cd waste-collection-optimizer
-make
-```
 
 You should see a `solver` (or `solver.exe` on Windows) executable created.
 
-### Step 2: Set Up Web Server
+### Step 1: Set Up Web Server
 
 ```bash
 cd web
 npm install express
 ```
 
-### Step 3: Start the Server
+### Step 2: Start the Server
 
 ```bash
 node server.js
 ```
 
-### Step 4: Open the Website
+### Step 3: Open the Website
 
 In your browser, go to:
 http://localhost:3002
@@ -93,7 +87,7 @@ Route 1:
 ### Output Explanation
 
 ```
-🚛 CVRP Solution Complete
+🚛Solution Complete
 Total Distance: 28.29
 Number of Routes: 2
 ```
@@ -124,60 +118,7 @@ Route 1: Depot (0,0) → House 1 (2,3) → House 2 (5,1) → Depot (0,0)
 
 ---
 
-## Troubleshooting
 
-### Problem: "gcc: command not found"
-
-**Solution**: Install GCC compiler
-- Windows: Download MinGW
-- Linux: `sudo apt-get install build-essential`
-- macOS: `xcode-select --install`
-
-### Problem: Web page won't load
-
-**Check:**
-1. Is `node server.js` running? (should show "Server running...")
-2. Did you compile solver? (`make` command)
-3. Is solver in parent directory of web/?
-
-### Problem: "Cannot find module 'express'"
-
-**Solution:**
-```bash
-cd web
-npm install express
-```
-
-### Problem: Port 3002 already in use
-
-**Solution:**
-```bash
-# Linux/Mac: Kill process
-lsof -ti:3002 | xargs kill
-
-# Or: Edit web/server.js, change PORT to 3003
-```
-
-### Problem: No routes appear after clicking Solve
-
-**Check:**
-1. Did you place depot? (green truck)
-2. Did you add at least 1 house? (green house)
-3. Are all quantities ≤ capacity?
-
-If house quantity > capacity, solver can't visit that house.
-
-### Problem: Compilation errors
-
-**Check:**
-- All files in `src/` folder? (main.c, cvrp.c, graph.c, bst.c, and all .h files)
-- Use: `gcc -o solver src/main.c src/cvrp.c src/graph.c src/bst.c -lm`
-
----
-
-## Quick Reference
-
-### Basic Commands
 
 ```bash
 # Compile
@@ -209,11 +150,3 @@ node server.js
 3. **Use settings** to adjust grid size for better visibility
 4. **Check "Segment Weights"** to see individual distances
 
-### Website Features
-
-- **Legend** (top-left): Shows route colors and distances
-- **Settings**: Adjust grid size for better placement
-- **Multiple routes**: Automatically handled if capacity exceeded
-- **Euclidean distance**: Straight-line 
-
-**End of User Manual**

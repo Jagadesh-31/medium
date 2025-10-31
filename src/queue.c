@@ -1,10 +1,7 @@
 #include "queue.h"
 #include <stdlib.h>
 
-/**
- * Creates a new empty queue
- * Initializes all pointers and size counter
- */
+
 Queue* create_queue() {
     Queue* queue = (Queue*)malloc(sizeof(Queue));
     queue->front = NULL;
@@ -13,10 +10,7 @@ Queue* create_queue() {
     return queue;
 }
 
-/**
- * Adds an element to the rear of the queue (enqueue operation)
- * This is the standard FIFO insertion - new elements go to the back
- */
+
 int enqueue(Queue* queue, int val) {
     // Create new node for the value
     QueueNode* new_node = (QueueNode*)malloc(sizeof(QueueNode));
@@ -40,10 +34,6 @@ int enqueue(Queue* queue, int val) {
     return 1;
 }
 
-/**
- * Removes and returns element from front of queue (dequeue operation)
- * This is the standard FIFO removal - elements leave from the front
- */
 int dequeue(Queue* queue) {
     // Check if queue is empty
     if (queue->front == NULL) {
@@ -69,18 +59,11 @@ int dequeue(Queue* queue) {
     return val;
 }
 
-/**
- * Checks if the queue is empty
- * Useful for loop conditions and validations
- */
+
 int is_queue_empty(Queue* queue) {
     return (queue->front == NULL);
 }
 
-/**
- * Frees all memory allocated for the queue
- * Removes all remaining elements and frees the queue structure
- */
 void free_queue(Queue* queue) {
     if (queue == NULL) return;
     

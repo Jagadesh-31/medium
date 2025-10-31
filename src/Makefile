@@ -2,7 +2,7 @@ CC = gcc
 CFLAGS = -Wall -O2 -g
 LDFLAGS = -lm
 
-SRC = src/main.c src/cvrp.c src/graph.c src/bst.c
+SRC = src/main.c src/graph.c
 TARGET = solver
 
 all: $(TARGET)

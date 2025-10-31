@@ -2,13 +2,7 @@
 #include <stdlib.h>
 #include <math.h>
 
-/**
- * Creates a new graph structure
- * This function allocates memory for the entire graph including:
- * - The main graph structure
- * - An array of points to store coordinates
- * - A 2D distance matrix to store pre-calculated distances
- */
+
 Graph* create_graph(int num_nodes) {
     // Allocate memory for the graph structure itself
     Graph* graph = (Graph*)malloc(sizeof(Graph));
@@ -27,11 +21,7 @@ Graph* create_graph(int num_nodes) {
     return graph;
 }
 
-/**
- * Frees all memory allocated for the graph
- * Must be called when done with graph to prevent memory leaks
- * Deallocates in reverse order of allocation
- */
+
 void free_graph(Graph* graph) {
     if (graph == NULL) return;
     
@@ -50,11 +40,7 @@ void free_graph(Graph* graph) {
     free(graph);
 }
 
-/**
- * Calculates the Euclidean (straight-line) distance between two points
- * This is the standard distance formula from geometry
- * Returns the distance as a double
- */
+
 double calculate_distance(Point a, Point b) {
     // Calculate differences in x and y coordinates
     double dx = a.x - b.x;

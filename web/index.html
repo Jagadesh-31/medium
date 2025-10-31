@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Waste Collection Path Optimizer</title>
+  <title>Garbage Collection Path Optimizer-MEDIUM</title>
   <style>
     body {
       background: #111;
@@ -125,7 +125,7 @@
   </style>
 </head>
 <body>
-  <h2>🚛 Waste Collection Path Optimizer</h2>
+  <h2>Garbage Collection Path Optimizer-MEDIUM</h2>
 
   <div class="capacity" id="truckCapacity">Truck Capacity: 100</div>
 
@@ -135,7 +135,7 @@
     <button id="setHomeBtn">Add House (🏠)</button>
     <button id="solveBtn">Solve</button>
     <button id="clearBtn">Clear All</button>
-    <label><input type="checkbox" id="disableCapacity"> Disable Capacity (Use TSP)</label>
+    <label><input type="checkbox" id="disableCapacity"> Disable Capacity</label>
   </div>
 
   <div id="settingsPanel">
@@ -342,8 +342,7 @@
                 }
             }
         });
-        
-        drawLegend(routesWithDetails, routeColors);
+
     }
 
     function drawLegend(routesWithDetails, colors) {
@@ -451,7 +450,7 @@
         }
     }
 
-    async function solveCVRP() {
+    async function solve() {
         if (!depot || homes.length === 0) {
             document.getElementById("resultContent").innerText = 
                 "❌ Please set depot/start and at least one house.";
@@ -504,7 +503,7 @@
 
             drawRoutes(routesWithWeights);
 
-            let resultText = `🚛 CVRP Solution Complete\n`;
+            let resultText = `🚛 Solution Complete\n`;
             resultText += `Total Distance: ${result.totalDistance.toFixed(2)}\n`;
             resultText += `Number of Routes: ${result.routes.length}\n\n`;
 
@@ -525,7 +524,7 @@
         } catch (err) {
             console.error("Solver error:", err);
             document.getElementById("resultContent").innerText =
-                "❌ Error solving CVRP: " + err.message;
+                "❌ Error solving : " + err.message;
         }
 
         setLoading(false);
@@ -533,7 +532,7 @@
 
     btnDepot.addEventListener("click", () => setActiveButton(btnDepot));
     btnHome.addEventListener("click", showQuantityModal);
-    solveBtn.addEventListener("click", solveCVRP);
+    solveBtn.addEventListener("click", solve);
     clearBtn.addEventListener("click", clearAll);
 
     confirmQtyBtn.addEventListener("click", handleQuantityConfirm);

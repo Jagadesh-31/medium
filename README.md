@@ -1,19 +1,18 @@
-# 🚛 Waste Collection Route Optimizer
+# 🚛Garbage Collection Route Optimizer
 
 **Team Medium**: Lohith, Bharath, Jagadesh
 
 ## Overview
 
-An intelligent garbage collection route optimizer that solves the **Capacitated Vehicle Routing Problem (CVRP)** using efficient data structures and algorithms.
+An intelligent garbage collection route optimizer that solves the routing problem using efficient data structures and algorithms.
 
-**Problem: Given multiple houses with waste quantities and a truck with limited capacity, find the shortest routes to collect all waste.
+Problem: Given multiple houses with waste quantities and a truck with limited capacity, find the shortest routes to collect all waste.
 
-**Solution**: Greedy nearest-neighbor algorithm with BST optimization for house selection.
+**Solution**: Greedy nearest-neighbor algorithm with optimization for house selection.
 
 ## Key Features
 
 **Distance-First Optimization** - Prioritizes nearest houses  
-**BST-Enhanced Selection** - O(log n) house lookup  
 **Interactive Web UI** - Visual route planning on grid  
 **Dual Distance Metrics** - Euclidean and Manhattan  
 **Capacity Management** - Automatic multi-route handling  
@@ -23,25 +22,24 @@ An intelligent garbage collection route optimizer that solves the **Capacitated 
 | Data Structure | Purpose | Complexity |
 |---|---|---|
 | **Graph (Adjacency Matrix)** | Store distances between all locations | O(1) lookup |
-| **Binary Search Tree (BST)** | Efficient sorted house selection | O(log n) insertion/search |
-| **Queue** | FIFO data structure for general processing | O(1) operations |
+| **Stack** | LIFO data structure for general processing | O(1) operations |
 | **Route Array** | Store paths and distances | O(1) access |
 
 ## Algorithm
 
-**Greedy Nearest Neighbor with BST Optimization**
+**Greedy Nearest Neighbor**
 
 ```
 1. Start at depot
 2. While unvisited houses exist:
    - Create sorted list of candidates (distance first, quantity second)
-   - Select best house using BST
+   - Select best house
    - Add to route, update capacity
    - When capacity full, return to depot
 3. Output all routes
 ```
 
-**Complexity**: O(n² log n)  
+**Complexity**: O(n²)  
 **Space**: O(n²)
 
 ## Project Structure
@@ -50,9 +48,9 @@ An intelligent garbage collection route optimizer that solves the **Capacitated 
 waste-collection-optimizer/
 ├── src/
 │   ├── main.c       (I/O & JSON output)
-│   ├── cvrp.c/h     (Core routing algorithm)
+│   ├── pathFinder.c/h     (Core routing algorithm)
 │   ├── graph.c/h    (Distance matrix)
-│   └── bst.c/h      (Binary Search Tree)
+│   └── stack.c/h  
 ├── web/
 │   ├── index.html   (Interactive UI)
 │   └── server.js    (Node.js backend)
@@ -88,13 +86,4 @@ Navigate to `http://localhost:3002`
 ## Results
 
 - **Distance Reduction**: 30-40% vs fixed routes
-- **Performance**: < 1 second for 50 houses
-- **Scalability**: Tested up to 100+ houses
-
-## Team
-- **Bharath** - Data Structures & Graph Implementation
-- **Lohith** - CVRP Algorithm & Optimization
-- **Jagadesh** - CVRP Algorithm & Web Interface
-
-
-For usage instructions, see [USER_MANUAL.md](USER_MANUAL.md)
+- **Performance**: < 1 second for 15 houses
