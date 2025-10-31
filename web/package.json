@@ -1,0 +1,17 @@
+{
+  "name": "waste-collection-optimizer",
+  "version": "1.0.0",
+  "description": "TSP-based waste collection route optimizer with C backend",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "build": "make",
+    "clean": "make clean"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  },
+  "keywords": ["tsp", "waste-collection", "optimization", "c", "express"],
+  "author": "Your Name",
+  "license": "MIT"
+}

@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Waste Collection Path Optimizer</title>
+  <style>
+    body {
+      background: #111;
+      color: #eee;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin: 16px;
+    }
+    .controls {
+      margin-bottom: 10px;
+    }
+    button, input[type="number"], input[type="text"], input[type="checkbox"] + label {
+      margin: 4px 6px;
+      padding: 6px 10px;
+      border-radius: 6px;
+      border: 1px solid #444;
+      background: #222;
+      color: #eee;
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    button:hover:not(.active) { background: #333; }
+    button.active { 
+        border-color: #9fdb6d;
+        background: #1a301a;
+        box-shadow: 0 0 4px rgba(159, 219, 109, 0.4);
+    }
+    button:active { transform: translateY(1px); }
+    label { 
+        margin-left: 8px; 
+        display: inline-flex; 
+        align-items: center;
+    }
+    canvas { 
+      display: block; 
+      margin: 12px auto; 
+      background: #1a1a1a; 
+      border: 1px solid #333; 
+    }
+    .result-box {
+      margin: 12px auto;
+      padding: 10px;
+      background: #222;
+      border: 1px solid #444;
+      border-radius: 6px;
+      max-width: 700px;
+      text-align: left;
+      white-space: pre-wrap;
+      font-family: monospace;
+      font-size: 14px;
+    }
+    .result-box h3 {
+      margin: 0 0 6px;
+      font-size: 18px;
+      color: #9fdb6d;
+    }
+    .capacity {
+      color: #9fdb6d;
+      margin-bottom: 8px;
+    }
+    #loadingMessage {
+      display: none;
+      color: #9fdb6d;
+      margin: 10px auto;
+      font-size: 1.2em;
+    }
+    #settingsPanel {
+      display: none;
+      margin-bottom: 12px;
+      background: #222;
+      padding: 8px;
+      border: 1px solid #444;
+      border-radius: 6px;
+      max-width: 600px;
+      margin-left:auto;
+      margin-right:auto;
+      text-align: left;
+    }
+    #settingsPanel > div {
+        margin: 6px 0;
+        padding: 4px;
+        border-bottom: 1px dashed #333;
+    }
+    #settingsPanel > div:last-child {
+        border-bottom: none;
+    }
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+        padding: 20px;
+    }
+    .modal-content {
+        background: #222;
+        padding: 25px;
+        border-radius: 12px;
+        border: 1px solid #444;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+        max-width: 400px;
+        width: 100%;
+        text-align: center;
+    }
+    .modal-content h3 {
+        margin-top: 0;
+        color: #9fdb6d;
+    }
+    .modal-tip {
+        font-size: 0.8em;
+        color: #888;
+        margin-top: 15px;
+    }
+  </style>
+</head>
+<body>
+  <h2>🚛 Waste Collection Path Optimizer</h2>
+
+  <div class="capacity" id="truckCapacity">Truck Capacity: 100</div>
+
+  <div class="controls">
+    <button id="settingsBtn">⚙ Settings</button>
+    <button id="setStartBtn">Set Depot/Start (🚛)</button>
+    <button id="setHomeBtn">Add House (🏠)</button>
+    <button id="solveBtn">Solve</button>
+    <button id="clearBtn">Clear All</button>
+    <label><input type="checkbox" id="disableCapacity"> Disable Capacity (Use TSP)</label>
+  </div>
+
+  <div id="settingsPanel">
+    <div>
+        <label for="capacityInput">Max Capacity: 
+            <input id="capacityInput" type="number" value="100" min="1" style="width: 60px;">
+        </label>
+        <button id="updateCapacityBtn">Update Cap.</button>
+    </div>
+    <div>
+        <label>Rows: 
+            <input id="rows" type="number" value="20" min="5" max="80" style="width: 50px;">
+        </label>
+        <label>Cols: 
+            <input id="cols" type="number" value="30" min="5" max="120" style="width: 50px;">
+        </label>
+        <label>Cell px: 
+            <input id="cellSize" type="number" value="25" min="8" max="80" style="width: 50px;">
+        </label>
+        <button id="resizeBtn">Reset Grid Size</button>
+    </div>
+  </div>
+
+  <canvas id="gridCanvas"></canvas>
+  
+  <div id="loadingMessage">Solving routes...</div>
+
+  <div class="result-box">
+    <h3>Result:</h3>
+    <div id="resultContent">Ready. Place the depot/start point and houses.</div>
+  </div>
+
+  <div id="quantityModal" class="modal-overlay">
+    <div class="modal-content">
+      <h3>Enter Waste Quantity (🏠)</h3>
+      <label for="houseQtyInput">Quantity:</label>
+      <input id="houseQtyInput" type="number" value="10" min="1" max="1000" style="width: 80px; margin-right: 10px;">
+      <button id="confirmQtyBtn">Set & Place</button>
+      <button id="cancelQtyBtn">Cancel</button>
+      <p class="modal-tip">This quantity represents the house's waste demand.</p>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("gridCanvas");
+    const ctx = canvas.getContext("2d");
+
+    let rows = parseInt(document.getElementById("rows").value);
+    let cols = parseInt(document.getElementById("cols").value);
+    let cellSize = parseInt(document.getElementById("cellSize").value);
+
+    let depot = null;  // Renamed from 'truck', serves as both start and end
+    let homes = [];
+    let truckCapacity = 100;
+    let homeQuantityToAdd = 10;
+    document.getElementById("truckCapacity").innerText = `Truck Capacity: ${truckCapacity}`;
+
+    let currentAction = null;
+
+    const btnDepot = document.getElementById("setStartBtn");
+    const btnHome = document.getElementById("setHomeBtn");
+    const solveBtn = document.getElementById("solveBtn"); 
+    const clearBtn = document.getElementById("clearBtn");
+    const settingsBtn = document.getElementById("settingsBtn");
+    const settingsPanel = document.getElementById("settingsPanel");
+    const resizeBtn = document.getElementById("resizeBtn");
+    const capacityInput = document.getElementById("capacityInput");
+    const updateCapacityBtn = document.getElementById("updateCapacityBtn");
+
+    const quantityModal = document.getElementById("quantityModal");
+    const houseQtyInput = document.getElementById("houseQtyInput");
+    const confirmQtyBtn = document.getElementById("confirmQtyBtn");
+    const cancelQtyBtn = document.getElementById("cancelQtyBtn");
+
+    function setLoading(isLoading) {
+        document.getElementById("loadingMessage").style.display = isLoading ? 'block' : 'none';
+        solveBtn.disabled = isLoading;
+        solveBtn.innerText = isLoading ? 'Solving...' : 'Solve';
+    }
+
+    function getCellFromClick(x, y) {
+        const c = Math.floor(x / cellSize);
+        const r = Math.floor(y / cellSize);
+        return { r, c };
+    }
+
+    function setActiveButton(btn) {
+        [btnDepot, btnHome].forEach(b => b.classList.remove("active"));
+        if(btn) btn.classList.add("active");
+        currentAction = btn === btnDepot ? 'depot' : btn === btnHome ? 'home' : null;
+    }
+
+    function drawGrid() {
+        canvas.width = cols * cellSize;
+        canvas.height = rows * cellSize;
+
+        ctx.fillStyle = "#1a1a1a";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.strokeStyle = "#333";
+        for (let r = 0; r < rows; r++) {
+            for (let c = 0; c < cols; c++) {
+                ctx.strokeRect(c * cellSize, r * cellSize, cellSize, cellSize);
+            }
+        }
+
+        if (depot) drawCell(depot, '🚛', '#87CEFA');
+        drawHomes(); 
+    }
+
+    function drawCell(point, icon, color) {
+        const x = point.c * cellSize + cellSize / 2;
+        const y = point.r * cellSize + cellSize / 2;
+        
+        ctx.fillStyle = color + '20';
+        ctx.fillRect(point.c * cellSize + 2, point.r * cellSize + 2, cellSize - 4, cellSize - 4);
+        ctx.strokeStyle = color;
+        ctx.strokeRect(point.c * cellSize + 2, point.r * cellSize + 2, cellSize - 4, cellSize - 4);
+
+        ctx.font = `${cellSize * 0.7}px Arial`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#fff';
+        ctx.fillText(icon, x, y);
+    }
+
+    function drawHomes() {
+        homes.forEach(h => {
+            const x = h.c * cellSize + cellSize / 2;
+            const y = h.r * cellSize + cellSize / 2;
+            
+            drawCell(h, '🏠', '#9fdb6d');
+
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = 'bold 12px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(h.initialQty, x, y + 15); 
+        });
+    }
+
+    function drawRoutes(routesWithDetails) {
+        drawGrid();
+        
+        const routeColors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7'];
+        
+        routesWithDetails.forEach((routeDetail, routeIndex) => {
+            const route = routeDetail.route;
+            const weights = routeDetail.weights;
+            const routeColor = routeColors[routeIndex % routeColors.length];
+            
+            if (route.length < 2) return;
+
+            let allPoints = [depot, ...homes, depot];  // depot appears twice (start and end)
+            
+            for(let i = 0; i < route.length - 1; i++) {
+                const currentIdx = route[i];
+                const nextIdx = route[i+1];
+                const segmentWeight = weights && weights[i] !== undefined ? weights[i] : null;
+
+                const fromPoint = allPoints[currentIdx];
+                const toPoint = allPoints[nextIdx];
+                
+                const fX = fromPoint.c * cellSize + cellSize / 2;
+                const fY = fromPoint.r * cellSize + cellSize / 2;
+                const tX = toPoint.c * cellSize + cellSize / 2;
+                const tY = toPoint.r * cellSize + cellSize / 2;
+
+                ctx.beginPath();
+                ctx.strokeStyle = routeColor;
+                ctx.lineWidth = 4;
+                ctx.lineCap = 'round';
+                ctx.moveTo(fX, fY);
+                ctx.lineTo(tX, tY);
+                ctx.stroke();
+
+                const headlen = 12;
+                const angle = Math.atan2(tY - fY, tX - fX);
+                ctx.fillStyle = routeColor;
+                ctx.beginPath();
+                ctx.moveTo(tX, tY);
+                ctx.lineTo(tX - headlen * Math.cos(angle - Math.PI / 6), 
+                          tY - headlen * Math.sin(angle - Math.PI / 6));
+                ctx.lineTo(tX - headlen * Math.cos(angle + Math.PI / 6), 
+                          tY - headlen * Math.sin(angle + Math.PI / 6));
+                ctx.closePath();
+                ctx.fill();
+
+                if (segmentWeight !== null) {
+                    const midX = (fX + tX) / 2;
+                    const midY = (fY + tY) / 2;
+
+                    ctx.font = 'bold 12px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                    const text = segmentWeight.toFixed(1);
+                    const textWidth = ctx.measureText(text).width;
+                    ctx.fillRect(midX - textWidth/2 - 3, midY - 15, textWidth + 6, 20);
+                    
+                    ctx.fillStyle = '#FFFFFF';
+                    ctx.fillText(text, midX, midY - 5);
+                }
+            }
+        });
+        
+        drawLegend(routesWithDetails, routeColors);
+    }
+
+    function drawLegend(routesWithDetails, colors) {
+        const legendX = 10;
+        const legendY = 10;
+        const itemHeight = 20;
+        
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+        ctx.fillRect(legendX, legendY, 200, routesWithDetails.length * itemHeight + 10);
+        
+        routesWithDetails.forEach((route, index) => {
+            const y = legendY + 5 + index * itemHeight;
+            
+            ctx.fillStyle = colors[index];
+            ctx.fillRect(legendX + 5, y, 15, 15);
+            
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = '12px Arial';
+            ctx.textAlign = 'left';
+            ctx.fillText(`Route ${index + 1}: ${route.distance.toFixed(2)} dist, ${route.quantity} qty`, 
+                        legendX + 25, y + 10);
+        });
+    }
+
+    function showQuantityModal() {
+        houseQtyInput.value = homeQuantityToAdd;
+        btnHome.classList.add("active"); 
+        currentAction = 'home';
+        quantityModal.style.display = 'flex';
+    }
+
+    function hideQuantityModal() {
+        quantityModal.style.display = 'none';
+        setActiveButton(null);
+        document.getElementById("resultContent").innerText = "House placement canceled.";
+    }
+
+    function handleQuantityConfirm() {
+        let qty = parseInt(houseQtyInput.value);
+        if (isNaN(qty) || qty <= 0) qty = 1;
+        homeQuantityToAdd = qty;
+        quantityModal.style.display = 'none';
+        document.getElementById("resultContent").innerText = `Ready to place house(s) with demand: ${homeQuantityToAdd}. Click on the grid.`;
+    }
+
+    function handleCanvasClick(event) {
+        if (!currentAction) return;
+
+        const rect = canvas.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+        const { r, c } = getCellFromClick(x, y);
+
+        if (r < 0 || r >= rows || c < 0 || c >= cols) return;
+
+        const isOccupied = (depot && depot.r === r && depot.c === c) ||
+                           homes.some(h => h.r === r && h.c === c);
+
+        if (isOccupied) {
+            document.getElementById("resultContent").innerText = "⚠️ That cell is already occupied!";
+            return;
+        }
+
+        if (currentAction === 'depot') {
+            depot = { r, c, qty: 0 };
+            document.getElementById("resultContent").innerText = "Depot/start point set (truck will return here after collection).";
+            setActiveButton(null);
+        } else if (currentAction === 'home') {
+            homes.push({ 
+                r, 
+                c, 
+                initialQty: homeQuantityToAdd, 
+                currentQty: homeQuantityToAdd, 
+                isCollected: false 
+            });
+            document.getElementById("resultContent").innerText = `House with demand ${homeQuantityToAdd} added. Total houses: ${homes.length}.`;
+        }
+        drawGrid();
+    }
+
+    function clearAll() {
+        depot = null;
+        homes = [];
+        drawGrid();
+        document.getElementById("resultContent").innerText = "All points cleared. Ready to set new locations.";
+        setActiveButton(null);
+        setLoading(false);
+    }
+
+    function updateGridSize() {
+        rows = parseInt(document.getElementById("rows").value);
+        cols = parseInt(document.getElementById("cols").value);
+        cellSize = parseInt(document.getElementById("cellSize").value);
+        clearAll();
+    }
+
+    function updateCapacity() {
+        const newCapacity = parseInt(capacityInput.value);
+        if (newCapacity > 0) {
+            truckCapacity = newCapacity;
+            document.getElementById("truckCapacity").innerText = `Truck Capacity: ${truckCapacity}`;
+            document.getElementById("resultContent").innerText = "Capacity updated.";
+        } else {
+            document.getElementById("resultContent").innerText = "Capacity must be a positive number.";
+        }
+    }
+
+    async function solveCVRP() {
+        if (!depot || homes.length === 0) {
+            document.getElementById("resultContent").innerText = 
+                "❌ Please set depot/start and at least one house.";
+            return;
+        }
+
+        setLoading(true);
+        
+        const allPoints = [
+            { ...depot, qty: 0 },
+            ...homes.map(h => ({ ...h, qty: h.initialQty })),
+            { ...depot, qty: 0 }  // Same depot as end point
+        ];
+
+    const disableCapacity = document.getElementById("disableCapacity").checked;
+    
+    const payload = {
+        n: homes.length,
+        capacity: disableCapacity ? -1 : truckCapacity,  
+        useGridDist: 1,
+        points: allPoints
+    };
+
+        try {
+            const response = await fetch("/solve", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                throw new Error(`Server error: ${response.status}`);
+            }
+
+            const result = await response.json();
+
+            if (!result || !result.routes || result.routes.length === 0) {
+                document.getElementById("resultContent").innerText =
+                    "❌ No valid routes found.";
+                setLoading(false);
+                return;
+            }
+
+            const routesWithWeights = result.routes.map(r => ({
+                route: r.route,
+                weights: r.summary.weights || [],
+                distance: r.distance,
+                quantity: r.totalQuantity
+            }));
+
+            drawRoutes(routesWithWeights);
+
+            let resultText = `🚛 CVRP Solution Complete\n`;
+            resultText += `Total Distance: ${result.totalDistance.toFixed(2)}\n`;
+            resultText += `Number of Routes: ${result.routes.length}\n\n`;
+
+            result.routes.forEach((route, index) => {
+                resultText += `Route ${index + 1}:\n`;
+                resultText += `  Path: ${route.route.map(node => {
+                    if (node === 0) return '🚛 Depot (Start)';
+                    if (node === allPoints.length - 1) return '🚛 Depot (Return)';
+                    return `🏠 House ${node} (Qty: ${homes[node-1].initialQty})`;
+                }).join(" → ")}\n`;
+                resultText += `  Distance: ${route.distance.toFixed(2)}\n`;
+                resultText += `  Quantity: ${route.totalQuantity}/${truckCapacity}\n`;
+                resultText += `  Segment Weights: [${route.summary.weights.map(w => w.toFixed(2)).join(", ")}]\n\n`;
+            });
+
+            document.getElementById("resultContent").innerText = resultText;
+
+        } catch (err) {
+            console.error("Solver error:", err);
+            document.getElementById("resultContent").innerText =
+                "❌ Error solving CVRP: " + err.message;
+        }
+
+        setLoading(false);
+    }
+
+    btnDepot.addEventListener("click", () => setActiveButton(btnDepot));
+    btnHome.addEventListener("click", showQuantityModal);
+    solveBtn.addEventListener("click", solveCVRP);
+    clearBtn.addEventListener("click", clearAll);
+
+    confirmQtyBtn.addEventListener("click", handleQuantityConfirm);
+    cancelQtyBtn.addEventListener("click", hideQuantityModal);
+
+    settingsBtn.addEventListener("click", () => {
+        settingsPanel.style.display = settingsPanel.style.display === 'block' ? 'none' : 'block';
+    });
+
+    resizeBtn.addEventListener("click", updateGridSize);
+    updateCapacityBtn.addEventListener("click", updateCapacity); 
+
+    canvas.addEventListener("click", handleCanvasClick);
+
+    window.onload = drawGrid;
+  </script>
+</body>
+</html>
